@@ -37,23 +37,27 @@ pipeline {
             parallel{
                  stage('UNIT'){
                     steps{
-                        bat '''
-                        SET PYTHONPATH=%WORKSPACE%
-                        pytest --junitxml=result-unit.xml test\\unit
-                        '''
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                            bat '''
+                            SET PYTHONPATH=%WORKSPACE%
+                            pytest --junitxml=result-unit.xml
+                            '''
+                        }
                     }
                 }
                 stage('REST'){
                     steps{
-                        bat '''
-                        SET FLASK_APP=app\\api.py
-                        SET PYTHONPATH=%WORKSPACE%
-                        start flask run
-                        SET JAVA_HOME=C:\\Program Files\\Java\\jdk-21
-                        SET PATH=%JAVA_HOME%\\bin;%PATH%
-                        start java -jar "C:\\Master DevOps\\Ejercicios\\Modulo4\\helloworld-master\\test\\wiremock\\wiremock-standalone-3.10.0.jar" --port 9090 --root-dir "C:\\Master DevOps\\Ejercicios\\Modulo4\\helloworld-master\\test\\wiremock"
-                        pytest --junitxml=result-rest.xml test\\rest
-                        '''
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                            bat '''
+                            SET FLASK_APP=app\\api.py
+                            SET PYTHONPATH=%WORKSPACE%
+                            start flask run
+                            SET JAVA_HOME=C:\\Program Files\\Java\\jdk-21
+                            SET PATH=%JAVA_HOME%\\bin;%PATH%
+                            start java -jar "C:\\Master DevOps\\Ejercicios\\Modulo4\\helloworld-master\\test\\wiremock\\wiremock-standalone-3.10.0.jar" --port 9090 --root-dir "C:\\Master DevOps\\Ejercicios\\Modulo4\\helloworld-master\\test\\wiremock"
+                            pytest --junitxml=result-rest.xml test\\rest
+                            '''
+                        }
                     }
                 }
             }
