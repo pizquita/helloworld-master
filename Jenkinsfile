@@ -39,7 +39,7 @@ pipeline {
                     steps{
                         bat '''
                         SET PYTHONPATH=%WORKSPACE%
-                        pytest test\\unit 
+                        pytest --junitxml=result-unit.xml test\\unit
                         '''
                     }
                 }
@@ -52,12 +52,16 @@ pipeline {
                         SET JAVA_HOME=C:\\Program Files\\Java\\jdk-21
                         SET PATH=%JAVA_HOME%\\bin;%PATH%
                         start java -jar "C:\\Master DevOps\\Ejercicios\\Modulo4\\helloworld-master\\test\\wiremock\\wiremock-standalone-3.10.0.jar" --port 9090 --root-dir "C:\\Master DevOps\\Ejercicios\\Modulo4\\helloworld-master\\test\\wiremock"
-                        pytest test\\rest
+                        pytest --junitxml=result-rest.xml test\\rest
                         '''
                     }
                 }
             }
         }
-       
+       stage('Results'){
+           steps{
+               junit 'result*.xml'
+           }
+       }
     }
 }
