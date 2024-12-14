@@ -7,7 +7,7 @@ from app import util
 @pytest.mark.unit
 class TestUtil(unittest.TestCase):
     def test_convert_to_number_correct_param(self):
-        self.assertEqual(4, util.convert_to_number("4"))
+        self.assertEqual(8, util.convert_to_number("4"))
         self.assertEqual(0, util.convert_to_number("0"))
         self.assertEqual(0, util.convert_to_number("-0"))
         self.assertEqual(-1, util.convert_to_number("-1"))
