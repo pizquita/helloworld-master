@@ -4,35 +4,20 @@ pipeline {
             PATH = "${env.PATH};C:\\Users\\mayca\\AppData\\Local\\Programs\\Python\\Python313\\Scripts;"
         }
     stages {
-        stage('Saludo') {
+        stage('Get Repository') {
             steps {
                 echo 'Prueba ejercicio 1.1'
-            }
-        }
-        stage('Clonar Repositorio') {
-            steps {
                 //solo para repositorios publicos, no requiere usuario y contraseña
                 git 'https://github.com/pizquita/helloworld-master.git'
-            }
-        }
-        stage('Verificar Archivos') {
-            steps{
                 script{
                     if (isUnix()) {
                         sh 'ls -la'
-                    } else {
-                        bat 'dir'
-                    }
-                }
-            }
-        }
-        stage('Mostrar Espacio de Trabajo') {
-            steps {
-                script {
-                    if (isUnix()) {
                         sh 'echo $WORKSPACE'
                     } else {
-                        bat 'echo %WORKSPACE%'
+                        bat '''
+                        dir
+                        echo %WORKSPACE%
+                        '''
                     }
                 }
             }
@@ -48,14 +33,31 @@ pipeline {
                 }
             }
         }
-        stage('UNIT'){
-            steps{
-                bat '''
-                SET PYTHONPATH=%WORKSPACE%
-                echo %PATH%
-                pytest test\\unit 
-                '''
+        stage('test'){
+            parallel{
+                 stage('UNIT'){
+                    steps{
+                        bat '''
+                        SET PYTHONPATH=%WORKSPACE%
+                        pytest test\\unit 
+                        '''
+                    }
+                }
+                stage('REST'){
+                    steps{
+                        bat '''
+                        SET FLASK_APP=app\\api.py
+                        SET PYTHONPATH=%WORKSPACE%
+                        start flask run
+                        SET JAVA_HOME=C:\\Program Files\\Java\\jdk-21
+                        SET PATH=%JAVA_HOME%\\bin;%PATH%
+                        start java -jar "C:\\Master DevOps\\Ejercicios\\Modulo4\\helloworld-master\\test\\wiremock\\wiremock-standalone-3.10.0.jar" --port 9090 --root-dir "C:\\Master DevOps\\Ejercicios\\Modulo4\\helloworld-master\\test\\wiremock"
+                        pytest test\\rest
+                        '''
+                    }
+                }
             }
         }
+       
     }
 }
