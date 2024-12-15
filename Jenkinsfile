@@ -1,71 +1,77 @@
 pipeline {
-    agent any
-        environment {
-            PATH = "${env.PATH};C:\\Users\\mayca\\AppData\\Local\\Programs\\Python\\Python313\\Scripts;"
-        }
+    agent none
     stages {
-        stage('Get Repository') {
+        stage('Checkout') {
+            agent { label 'ARepo' }
             steps {
-                echo 'Prueba ejercicio 1.1'
-                //solo para repositorios publicos, no requiere usuario y contraseña
+                bat 'whoami'                     // Usuario que ejecuta la etapa
+                bat 'hostname'                   // Nombre del nodo
+                bat 'echo %WORKSPACE%'           // Directorio de trabajo actual
                 git 'https://github.com/pizquita/helloworld-master.git'
-                script{
-                    if (isUnix()) {
-                        sh 'ls -la'
-                        sh 'echo $WORKSPACE'
-                    } else {
-                        bat '''
-                        dir
-                        echo %WORKSPACE%
-                        '''
-                    }
+                bat '''
+                    dir
+                    echo %WORKSPACE%
+                '''
+                stash includes: '**', name: 'source-code'
+            }
+        }
+        stage('Build') {
+            agent { label 'ARepo' }
+            steps {
+                unstash 'source-code'
+                bat 'echo Construye'
+            }
+        }
+        stage('Unit Tests') {
+            agent { label 'AUnit' }
+            steps {
+                bat 'whoami'
+                bat 'hostname'
+                bat 'echo %WORKSPACE%'
+                unstash 'source-code'
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                   bat '''
+                        SET PYTHONPATH=%WORKSPACE%
+                        pytest test\\unit --junitxml=result-unit.xml
+                    '''
+                }
+                stash includes: 'result-unit.xml', name: 'unit-test-results' // Almacena el archivo de pruebas
+            }
+        }
+        stage('REST Tests') {
+            agent { label 'ARest' }
+            steps {
+                bat 'whoami'
+                bat 'hostname'
+                bat 'echo %WORKSPACE%'
+                unstash 'source-code'
+
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    bat '''
+                        SET FLASK_APP=app\\api.py
+                        SET PYTHONPATH=%WORKSPACE%
+                        start flask run
+                        SET JAVA_HOME=C:\\Program Files\\Java\\jdk-21
+                        SET PATH=%JAVA_HOME%\\bin;%PATH%
+                        start java -jar "C:\\Master DevOps\\Ejercicios\\Modulo4\\helloworld-master\\test\\wiremock\\wiremock-standalone-3.10.0.jar" --port 9090 --root-dir "C:\\Master DevOps\\Ejercicios\\Modulo4\\helloworld-master\\test\\wiremock"
+                        pytest --junitxml=result-rest.xml test\\rest
+                    '''
+                }
+                stash includes: 'result-rest.xml', name: 'rest-test-results'
+            }
+        }
+        stage('Publish Results') {
+            agent { label 'ARepo' }
+            steps {
+                unstash 'unit-test-results'       // Recupera resultados de pruebas unitarias
+                unstash 'rest-test-results'       // Recupera resultados de pruebas REST
+                junit 'result*.xml'
+            }
+            post {
+                always {
+                   cleanWs()
                 }
             }
         }
-        stage('Build'){
-            steps{
-                script {
-                    if (isUnix()) {
-                        sh 'echo Construye'
-                    } else {
-                        bat 'echo Construye'
-                    }
-                }
-            }
-        }
-        stage('test'){
-            parallel{
-                 stage('UNIT'){
-                    steps{
-                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                            bat '''
-                            SET PYTHONPATH=%WORKSPACE%
-                            pytest --junitxml=result-unit.xml
-                            '''
-                        }
-                    }
-                }
-                stage('REST'){
-                    steps{
-                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                            bat '''
-                            SET FLASK_APP=app\\api.py
-                            SET PYTHONPATH=%WORKSPACE%
-                            start flask run
-                            SET JAVA_HOME=C:\\Program Files\\Java\\jdk-21
-                            SET PATH=%JAVA_HOME%\\bin;%PATH%
-                            start java -jar "C:\\Master DevOps\\Ejercicios\\Modulo4\\helloworld-master\\test\\wiremock\\wiremock-standalone-3.10.0.jar" --port 9090 --root-dir "C:\\Master DevOps\\Ejercicios\\Modulo4\\helloworld-master\\test\\wiremock"
-                            pytest --junitxml=result-rest.xml test\\rest
-                            '''
-                        }
-                    }
-                }
-            }
-        }
-       stage('Results'){
-           steps{
-               junit 'result*.xml'
-           }
-       }
     }
 }
