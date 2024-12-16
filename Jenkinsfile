@@ -12,13 +12,13 @@ pipeline {
                     dir
                     echo %WORKSPACE%
                 '''
-                stash includes: '**', name: 'source-code'
+                stash includes: '**', name: 'source-code'  // Guardar todo el código descargado
             }
         }
         stage('Build') {
             agent { label 'ARepo' }
             steps {
-                unstash 'source-code'
+                unstash 'source-code'            // Recupera el código guardado
                 bat 'echo Construye'
             }
         }
@@ -28,7 +28,7 @@ pipeline {
                 bat 'whoami'
                 bat 'hostname'
                 bat 'echo %WORKSPACE%'
-                unstash 'source-code'
+                unstash 'source-code'            // Recupera el código guardado
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                    bat '''
                         SET PYTHONPATH=%WORKSPACE%
@@ -44,7 +44,7 @@ pipeline {
                 bat 'whoami'
                 bat 'hostname'
                 bat 'echo %WORKSPACE%'
-                unstash 'source-code'
+                unstash 'source-code'            // Recupera el código guardado
 
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                     bat '''
