@@ -70,9 +70,17 @@ pipeline {
                 unstash 'rest-test-results'       // Recupera resultados de pruebas REST
                 junit 'result*.xml'
             }
-            post {
-                always {
-                   cleanWs()
+        }
+    }
+    post {
+        always {
+            script {
+                // Limpia los workspaces de todos los agentes utilizados
+                def nodes = ['ARepo', 'AUnit', 'ARest'] // Lista de nodos utilizados
+                nodes.each { nodeLabel ->
+                    node(nodeLabel) {
+                        cleanWs()
+                    }
                 }
             }
         }
